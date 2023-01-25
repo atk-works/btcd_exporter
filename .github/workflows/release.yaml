@@ -21,5 +21,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           goos: ${{ matrix.goos }}
           goarch: ${{ matrix.goarch }}
-          project_path: ./cmd/go-ps3syscon
-          md5sum: false
+          sha256sum: true
