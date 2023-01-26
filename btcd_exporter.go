@@ -23,6 +23,11 @@ var (
 		"How many blocks are reported by btcd getinfo.",
 		nil, nil,
 	)
+	latestBlock = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "", "latest_block_timestamp"),
+		"Timestamp of the latest block in the chain. According to block header information.",
+		nil, nil,
+	)
 	peers = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "", "peers"),
 		"How many peers are reported by btcd getinfo.",
@@ -51,15 +56,17 @@ type BtcdStatistics struct {
 	difficulty    float64
 	bytesSent     int
 	bytesReceived int
+	latestBlockTs int
 }
 
-func newBtcdStatistics(blocks int, peers int, difficulty float64, bytesSent int, bytesReceived int) *BtcdStatistics {
+func newBtcdStatistics(blocks int, peers int, difficulty float64, bytesSent int, bytesReceived int, latestBlockTs int) *BtcdStatistics {
 	return &BtcdStatistics{
 		blocks:        blocks,
 		peers:         peers,
 		difficulty:    difficulty,
 		bytesSent:     bytesSent,
 		bytesReceived: bytesReceived,
+		latestBlockTs: latestBlockTs,
 	}
 }
 
@@ -80,6 +87,7 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- difficulty
 	ch <- bytesSent
 	ch <- bytesReceived
+	ch <- latestBlock
 }
 
 func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
@@ -99,6 +107,7 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(difficulty, prometheus.GaugeValue, statistics.difficulty)
 	ch <- prometheus.MustNewConstMetric(bytesSent, prometheus.CounterValue, float64(statistics.bytesSent))
 	ch <- prometheus.MustNewConstMetric(bytesReceived, prometheus.GaugeValue, float64(statistics.bytesReceived))
+	ch <- prometheus.MustNewConstMetric(latestBlock, prometheus.GaugeValue, float64(statistics.latestBlockTs))
 }
 
 func (e *Exporter) GetAllStatistics() (*BtcdStatistics, error) {
@@ -110,12 +119,21 @@ func (e *Exporter) GetAllStatistics() (*BtcdStatistics, error) {
 	if err != nil {
 		return nil, err
 	}
+	bestBlockHash, err := e.client.GetBestBlockHash()
+	if err != nil {
+		return nil, err
+	}
+	blockHeader, err := e.client.GetBlockHeader(bestBlockHash)
+	if err != nil {
+		return nil, err
+	}
 	statistics := newBtcdStatistics(
 		int(info.Blocks),
 		int(info.Connections),
 		info.Difficulty,
 		int(netTotals.TotalBytesSent),
 		int(netTotals.TotalBytesRecv),
+		int(blockHeader.Timestamp.Unix()),
 	)
 	return statistics, nil
 }
