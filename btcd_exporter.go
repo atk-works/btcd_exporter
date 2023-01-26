@@ -100,7 +100,6 @@ func (e *Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(difficulty, prometheus.GaugeValue, statistics.difficulty)
 	ch <- prometheus.MustNewConstMetric(bytesSent, prometheus.CounterValue, float64(statistics.bytesSent))
 	ch <- prometheus.MustNewConstMetric(bytesReceived, prometheus.GaugeValue, float64(statistics.bytesReceived))
-	log.Println("Endpoint scraped")
 }
 
 func (e *Exporter) GetAllStatistics() (*BtcdStatistics, error) {
@@ -125,7 +124,6 @@ func (e *Exporter) GetAllStatistics() (*BtcdStatistics, error) {
 }
 
 func main() {
-	fmt.Println("joo")
 	host := os.Getenv("BTCD_EXPORTER_HOST")
 	username := os.Getenv("BTCD_EXPORTER_USERNAME")
 	password := os.Getenv("BTCD_EXPORTER_PASSWORD")
@@ -146,7 +144,6 @@ func main() {
 
 	exporter := NewExporter(client)
 	prometheus.MustRegister(exporter)
-	log.Println("Exporter registered")
 	http.Handle("/metrics", promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
@@ -157,5 +154,6 @@ func main() {
              </body>
              </html>`))
 	})
+	log.Println("starting server on 0.0.0.0:9101")
 	log.Fatal(http.ListenAndServe(":9101", nil))
 }
