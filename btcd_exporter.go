@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -107,12 +106,10 @@ func (e *Exporter) GetAllStatistics() (*BtcdStatistics, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(info)
 	netTotals, err := e.client.GetNetTotals()
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(netTotals)
 	statistics := newBtcdStatistics(
 		int(info.Blocks),
 		int(info.Connections),
