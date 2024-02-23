@@ -1,10 +1,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -142,14 +145,25 @@ func main() {
 	host := os.Getenv("BTCD_EXPORTER_HOST")
 	username := os.Getenv("BTCD_EXPORTER_USERNAME")
 	password := os.Getenv("BTCD_EXPORTER_PASSWORD")
+	certPath := os.Getenv("BTCD_EXPORTER_CERT_PATH")
 	if host == "" || username == "" || password == "" {
 		log.Fatal("BTCD_EXPORTER_HOST, BTCD_EXPORTER_USERNAME, BTCD_EXPORTER_PASSWORD must be set")
 	}
+	if certPath == "" {
+		btcdHomeDir := btcutil.AppDataDir("btcd", false)
+		certPath = filepath.Join(btcdHomeDir, "rpc.cert")
+		log.Println("BTCD_EXPORTER_CERT_PATH not set, using default path: ", certPath)
+	}
+	certs, err := ioutil.ReadFile(certPath)
+	if err != nil {
+		log.Fatal("error reading cert file: ", err)
+	}
 	connCfg := &rpcclient.ConnConfig{
-		Host:     host,
-		Endpoint: "ws",
-		User:     username,
-		Pass:     password,
+		Host:         host,
+		Endpoint:     "ws",
+		User:         username,
+		Pass:         password,
+		Certificates: certs,
 	}
 	client, err := rpcclient.New(connCfg, nil)
 	if err != nil {
@@ -169,6 +183,6 @@ func main() {
              </body>
              </html>`))
 	})
-	log.Println("starting server on 0.0.0.0:9101")
+	log.Println("starting server on port 9101")
 	log.Fatal(http.ListenAndServe(":9101", nil))
 }
